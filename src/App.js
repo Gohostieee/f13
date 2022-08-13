@@ -1,5 +1,5 @@
 import './App.css';
-import {CharSelect, Home, Login} from "./pages/pageindex.jsx"
+import {CharSelect, CreateChar, Home, Login} from "./pages/pageindex.jsx"
 import {useState} from "react"
 function App() {
   const [page,usePage] = useState("login");
@@ -13,7 +13,8 @@ function App() {
       break;
     case "charselect":
         return(<CharSelect state = {usePage}/>)
-
+    case "createchar":
+        return (<CreateChar state = {usePage}/>)
   }
 
   
