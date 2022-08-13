@@ -14,16 +14,15 @@ import 'dotenv/config'
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional 
-
-const firebaseConfig = {
-  apiKey: process.env.apiKey,
+console.log({apiKey: process.env.apiKey,
   authDomain: process.env.authDomain,
   projectId: process.env.projectId,
   storageBucket: process.env.storageBucket,
   messagingSenderId: process.env.messagingSenderId,
   appId: process.env.appId,
-  measurementId: process.env.measurementId
-
+  measurementId: process.env.measurementId})
+const firebaseConfig = {
+  //for some reason when I run this using env variables it throws an error to do access denied? looking into it later, for now forgoing env variables and just eliminating them whenever I push to master
 };
 
 
@@ -65,7 +64,7 @@ app.get("/users/signup", async (req,res) => {
   }
   else {
     try {
-      console.log(qEmpty,'heat');
+
       const count = (await getDoc(doc(db,'users','userData'))).data()['count']+1
       await setDoc(doc(db,"users","userData"),{count:count},{merge:true})
       await setDoc(doc(db,"users",count.toString()), {name: req.query["name"], password: hash256(req.query['password']), characters: 0})
