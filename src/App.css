@@ -8,6 +8,7 @@ html {
   height: 40vmin;
   pointer-events: none;
 }
+div:focus,
 input:focus,
 select:focus,
 textarea:focus,
