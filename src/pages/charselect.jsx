@@ -1,6 +1,5 @@
 
 
-
 const CharSelect = (props) => {
     const userInfo = JSON.parse(localStorage.getItem("user"))
     const parseChars = () => {
