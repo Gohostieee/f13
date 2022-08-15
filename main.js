@@ -23,6 +23,8 @@ console.log({apiKey: process.env.apiKey,
   measurementId: process.env.measurementId})
 const firebaseConfig = {
   //for some reason when I run this using env variables it throws an error to do access denied? looking into it later, for now forgoing env variables and just eliminating them whenever I push to master
+  
+
 };
 
 
@@ -78,6 +80,49 @@ app.get("/users/signup", async (req,res) => {
   }
   res.status(400).send({reason:"idk lmao"})
 })
+ app.get("/users/character",async (req,res)=> {
+ let userID,charData,pass = false;
+  let docSnap = query(userRef,where("name","==",req.query["username"], "and", "pass", "==", hash256(req.query["password"])))
+  try{
+      docSnap = await getDocs(docSnap)
+      docSnap.forEach(async (docs)=>{
+        if(docs.exists()){
+          	charData = docs.data()['characters'];
+      		res.status(200).send(charData)
+        }
+      })
+      pass = true
+  }
+  finally {
+  	if(!pass) {
+      res.status(400).send(false)
+  	}
 
+  }
+ })
+app.post("/users/character", async (req,res) => {
+  let userID,charData,pass = false;
+  let docSnap = query(userRef,where("name","==",req.body.username, "and", "pass", "==", hash256(req.body.password)))
+  try{
+      docSnap = await getDocs(docSnap)
+      docSnap.forEach(async (docs)=>{
+        if(docs.exists()){
+          charData = docs.data()['characters'];
+          charData.push(req.body.charData)
+          userID = docs.id;
+          await setDoc(doc(db,"users",userID),{characters:charData},{merge: true})
+        }
+      })
+      res.status(200).send(true)
+      pass = true
+  }
+  finally {
+  	if(!pass) {
+      res.status(400).send(false)
+  	}
+
+  }
+ 
+})
 
 app.listen(3001, ()=> console.log('listening....'));
