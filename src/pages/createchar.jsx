@@ -3,7 +3,8 @@ import axios from "axios"
 
 const apiURL = "http://localhost:3001/"
 
-const CreateChar = () => {                        //s p e c i a l
+const CreateChar = (props) => {                        //s p e c i a l
+    const userInfo = JSON.parse(localStorage.getItem("user"))
     const [refresh,useRefresh] = useState(0);
     let special= useRef([5,5,5,5,5,5,5]), remainingPoints = useRef(10),remainingPointsRef = useRef(),race = useRef('0'), attributesRef = {age:useRef(),height:useRef(),name:useRef()},traits = useRef([]),selectOptRef = {"Gender":useRef(),"Body":useRef(),"Speech":useRef(),"Complexion":useRef()}, flavourtexts = {"OOC":useRef(),"LOWIC":useRef(), "HIGHIC":useRef()} ;
     const raceOpts = ["Human","Ghoul","Synth"];
@@ -18,10 +19,12 @@ const CreateChar = () => {                        //s p e c i a l
         }
 
     }
+
     const ModifyRace = (x) => {
         race.current = x;
         useRefresh(refresh+1);
     }
+
     const ModifyTraits = (x,mode) => {
         switch(mode) {
             case "add":
@@ -38,6 +41,7 @@ const CreateChar = () => {                        //s p e c i a l
         console.log(traits.current)
             
     }
+
     const parseRace = (x) => {
         let raceArr = [];
         for(let y in x) { 
@@ -84,12 +88,12 @@ const CreateChar = () => {                        //s p e c i a l
             specialArr.push(<>
                 <div className={"flex flex-col m-2 select-none "}>
 
-                <button onClick={()=>{ModifySpecial(x,1)}} className={"border font-black text-xl p pr-2 pl-2 text-white hover:text-black hover:bg-white transition-all mb-2"}>🢁</button>
-                <div className={"flex m-auto"}>
-                    <p className={"text-white font-light text-xl"}>{specialStr[x]}{"\u00a0"}:</p>
-                    <p ref = {specialRef[x]} className={"text-white font-light text-xl"}>{"\u00a0\u00a0"}{special.current[x]}</p>
-                </div>
-                <button onClick={()=>{ModifySpecial(x,-1)}} className={"border font-black text-xl p pr-2 pl-2 text-white hover:text-black hover:bg-white transition-all mt-2"}>🢃</button>
+                    <button onClick={()=>{ModifySpecial(x,1)}} className={"border font-black text-xl p pr-2 pl-2 text-white hover:text-black hover:bg-white transition-all mb-2"}>🢁</button>
+                    <div className={"flex m-auto"}>
+                        <p className={"text-white font-light text-xl"}>{specialStr[x]}{"\u00a0"}:</p>
+                        <p ref = {specialRef[x]} className={"text-white font-light text-xl"}>{"\u00a0\u00a0"}{special.current[x]}</p>
+                    </div>
+                    <button onClick={()=>{ModifySpecial(x,-1)}} className={"border font-black text-xl p pr-2 pl-2 text-white hover:text-black hover:bg-white transition-all mt-2"}>🢃</button>
                 </div>
 
             </>)
@@ -142,8 +146,18 @@ const CreateChar = () => {                        //s p e c i a l
         character["HIGHIC"] = flavourtexts["HIGHIC"].current.innerHTML
         character["traits"] = traits.current
         axios({
-            url:`${apiURL}users/character/post`,
-            method:"post"
+            url:`${apiURL}users/character`,
+            method:"post",
+            data: {
+                username:userInfo["user"],
+                password:userInfo["pass"],
+                charData:character
+            }
+        }).then(x => {
+            props.state("charselect")
+        }).catch(x=>{
+            localStorage.clear()
+            props.state("login")
         })
     }
     useEffect(()=>{
