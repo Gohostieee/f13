@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -19,10 +20,6 @@ type mapgrid struct {
 	sizeX  uint16
 	sizeY  uint16
 }
-
-var (
-	users [3]*websocket.Conn
-)
 
 func (self mapgrid) createMap(x uint16, y uint16) mapgrid {
 	self.sizeX = x
@@ -58,6 +55,36 @@ func (self mapgrid) parseMap(xPos uint16, yPos uint16, xRange uint16, yRange uin
 	return mapjson.String()
 }
 
+type response struct {
+	DataType string `json:"Request"`
+	MapData  string `json:"mapData"`
+}
+
+type player struct {
+	userConn *websocket.Conn
+}
+type playerConnArr struct {
+	userCount uint16
+	userArr   []player
+}
+
+func (self *playerConnArr) init() {
+	self.userCount = 0
+
+}
+func (self *playerConnArr) addItem(user player) {
+	self.userCount += 1
+	self.userArr = append(self.userArr, user)
+}
+func (self playerConnArr) remove(i uint16) []player {
+	self.userArr[i] = self.userArr[len(self.userArr)-1]
+	return self.userArr[:len(self.userArr)-1]
+}
+
+var (
+	playerConnections playerConnArr
+)
+
 var yumaMap mapgrid
 
 var upgrader = websocket.Upgrader{} // use default options
@@ -69,16 +96,29 @@ func socketHandler(w http.ResponseWriter, r *http.Request) {
 		log.Print("Error during connection upgradation:", err)
 		return
 	}
-
+	defer conn.Close()
 	// The event loop
 	for {
 		messageType, message, err := conn.ReadMessage()
-		var _ = message
 		if err != nil {
 			log.Println("Error during message reading:", err)
 			break
 		}
-		err = conn.WriteMessage(messageType, []byte(yumaMap.parseMap(32, 32, 32, 32)))
+		switch string(message) {
+		case "getMap":
+			err = conn.WriteMessage(messageType, []byte(yumaMap.parseMap(32, 32, 32, 32)))
+
+			break
+		case "connect":
+			var user player = player{conn}
+			playerConnections.addItem(user)
+			fmt.Printf("user count: %d", playerConnections.userCount)
+			break
+		default:
+			conn.WriteMessage(messageType, []byte("what?"))
+
+			break
+		}
 		if err != nil {
 			log.Println("Error during message writing:", err)
 			break
@@ -87,12 +127,38 @@ func socketHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func home(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Index Page")
-}
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Print("Error during connection upgradation:", err)
+		return
+	}
+	defer conn.Close()
 
+}
+func sendMapData() {
+	count := playerConnections.userCount
+
+	for {
+		res := response{"mapData", yumaMap.parseMap(32, 32, 32, 32)}
+		for count = 0; count < playerConnections.userCount; count++ {
+			fmt.Printf("%s", res.DataType)
+			err := playerConnections.userArr[count].userConn.WriteJSON(res)
+			if err != nil {
+				fmt.Println("In another episode of how fucked up is fucked up: This is fucked up", err)
+				playerConnections.userArr = playerConnections.remove(count)
+				playerConnections.userCount--
+				count--
+			}
+		}
+		time.Sleep(100)
+	}
+
+}
 func main() {
+	playerConnections.init()
 	yumaMap = yumaMap.createMap(320, 320)
 	http.HandleFunc("/socket", socketHandler)
 	http.HandleFunc("/", home)
+	go sendMapData()
 	log.Fatal(http.ListenAndServe("localhost:8080", nil))
 }
